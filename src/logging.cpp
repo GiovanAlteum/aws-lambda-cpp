@@ -39,11 +39,12 @@ static inline char const* get_prefix(verbosity v)
 LAMBDA_RUNTIME_API
 void log(verbosity v, char const* tag, char const* msg, va_list args)
 {
+    FILE* const stream = v == verbosity::error ? stderr : stdout;
     va_list copy;
     va_copy(copy, args);
     const int sz = vsnprintf(nullptr, 0, msg, args) + 1;
     if (sz < 0) {
-        puts("error occurred during log formatting!\n");
+        fprintf(stderr, "error occurred during log formatting!\n");
         va_end(copy);
         return;
     }
@@ -58,10 +59,10 @@ void log(verbosity v, char const* tag, char const* msg, va_list args)
     va_end(copy);
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::high_resolution_clock::now().time_since_epoch());
-    printf("%s [%lld] %s %s\n", get_prefix(v), static_cast<long long>(ms.count()), tag, out);
+    fprintf(stream, "%s [%lld] %s %s\n", get_prefix(v), static_cast<long long>(ms.count()), tag, out);
     // stdout is not line-buffered when redirected (for example to a file or to another process) so we must flush it
     // manually.
-    fflush(stdout);
+    fflush(stream);
     if (out != buf.data()) {
         delete[] out;
     }
